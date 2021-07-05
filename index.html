@@ -219,7 +219,7 @@
                 var that = this;
                 selected_age_range = this.slider.noUiSlider.get();
                 axios
-                    .get(".templates/filter", {
+                    .get("templates/filter", {
                         params: {
                             groups: that.groups,
                             genders: that.gender_value,
