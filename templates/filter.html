@@ -1,0 +1,131 @@
+<style>
+    /* .noUi-tooltip {
+    display: none;
+  }
+  .noUi-active .noUi-tooltip {
+    display: block;
+  } */
+    
+    #slider-handles {
+        margin-top: 40px;
+    }
+    
+    label {
+        display: inline-block;
+    }
+</style>
+
+<div id="app">
+    <label>
+        <vue-multiselect v-model="gender_value" :options="gender_options" placeholder="选择用户性别" :multiple="true" @input="getUserData"></vue-multiselect>
+    </label>
+    <label>
+        <vue-multiselect v-model="area_value" :options="area_options" placeholder="选择用户所在地区" :multiple="true" @input="getUserData"></vue-multiselect>
+    </label>
+    <label>
+        <vue-multiselect v-model="speak_lan_value" :options="speak_lan_options" placeholder="用户擅长语言" :multiple="true" @input="getUserData"></vue-multiselect>
+    </label>
+    <label>
+        <vue-multiselect v-model="learn_lan_value" :options="learn_lan_options" placeholder="正在学习的语言" :multiple="true" @input="getUserData"></vue-multiselect>
+    </label>
+    <div style="text-align: center">
+        <div id="slider-handles"></div>
+        <hr />
+        <div id="vis"></div>
+    </div>
+
+</div>
+
+<script>
+    var app = new Vue({
+        el: "#app",
+        components: {
+            "vue-multiselect": VueMultiselect.default
+        },
+        data: {
+            groups: ['group1'],
+            gender_value: ['male', 'female'],
+            gender_options: [],
+            area_value: [],
+            area_options: [],
+            speak_lan_value: [],
+            speak_lan_options: [],
+            learn_lan_value: [],
+            learn_lan_options: [],
+            ages: {
+                max: 100,
+                min: 0
+            },
+            slider: null
+        },
+        methods: {
+            updateSlider() {
+                this.slider.noUiSlider.updateOptions({
+                    range: {
+                        min: this.ages.min,
+                        max: this.ages.max
+                    },
+                    start: [this.ages.min, this.ages.max]
+                });
+            },
+            getUserData() {
+                handles = document.getElementById("slider-handles");
+                handles.setAttribute("style", "z-index: -1")
+                var that = this;
+                selected_age_range = this.slider.noUiSlider.get();
+                axios
+                    .get("/filter", {
+                        params: {
+                            groups: that.groups,
+                            genders: that.gender_value,
+                            user_areas: that.area_value,
+                            speak_lans: that.speak_lan_value,
+                            learn_lans: that.learn_lan_value,
+                            age_min: selected_age_range[0],
+                            age_max: selected_age_range[1]
+                        }
+                    })
+                    .then(function(response) {
+                        that.gender_options = response.data.genders;
+                        that.area_options = response.data.user_areas;
+                        that.speak_lan_options = response.data.speak_lans;
+                        that.learn_lan_options = response.data.learn_lans;
+                        vegaEmbed("#vis", response.data.figure, {
+                            mode: "vega-lite"
+                        }).then(function(data) {
+                            data.view.addEventListener("click", that.onViewClicked);
+                        });
+                    });
+                handles.setAttribute("style", "z-index: 0")
+            },
+            onViewClicked(event, item) {
+                if (item && typeof item != "undefined") console.log(item.datum);
+            }
+        },
+        mounted() {
+            var that = this;
+            this.slider = document.getElementById("slider-handles");
+
+            noUiSlider.create(this.slider, {
+                start: [this.ages.min, this.ages.max],
+                range: {
+                    min: [this.ages.min],
+                    max: [this.ages.max]
+                },
+                tooltips: true,
+                format: {
+                    from: function(value) {
+                        return parseInt(value);
+                    },
+                    to: function(value) {
+                        return parseInt(value);
+                    }
+                }
+            });
+            this.slider.noUiSlider.on("change", function() {
+                that.getUserData();
+            });
+            this.getUserData();
+        }
+    });
+</script>
